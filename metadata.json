@@ -1,0 +1,8 @@
+{
+  "name": "EcoAudit",
+  "description": "EcoAudit is a community waste logger that lets citizens log disposed waste categories and weights, with anti-fraud geolocation validation to ensure accurate, community-driven audits.",
+  "requestFramePermissions": [
+    "geolocation"
+  ],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,34 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // Global safety net - deny all by default
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // Validation helper for logs collection
+    function isValidLog(data) {
+      return data.category is string 
+        && (data.category == 'Plastic' || data.category == 'E-Waste' || data.category == 'Organic' || data.category == 'Paper' || data.category == 'Metal' || data.category == 'Glass' || data.category == 'Other')
+        && data.weight is number 
+        && data.weight > 0 
+        && data.weight <= 10000
+        && data.isVerified is bool
+        && (!('latitude' in data) || data.latitude == null || data.latitude is number)
+        && (!('longitude' in data) || data.longitude == null || data.longitude is number)
+        && (!('notes' in data) || (data.notes is string && data.notes.size() <= 2000))
+        && (!('reporterName' in data) || (data.reporterName is string && data.reporterName.size() <= 200))
+        && (!('locationError' in data) || data.locationError is string)
+        && (!('imagePath' in data) || data.imagePath is string)
+        && data.timestamp is string;
+    }
+
+    // Logs collection rules
+    match /logs/{logId} {
+      allow read, delete: if true;
+      allow create: if isValidLog(request.resource.data);
+      allow update: if false; // Immutable ledger enforcement
+    }
+  }
+}

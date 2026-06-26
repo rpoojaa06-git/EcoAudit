@@ -1,0 +1,28 @@
+[
+  {
+    "id": "log-1782476671722-1106",
+    "imagePath": "/uploads/waste-1782476671721-181.jpg",
+    "notes": "",
+    "category": "Organic",
+    "longitude": 80.22372892566523,
+    "weight": 5,
+    "latitude": 12.980272852685486,
+    "locationError": "",
+    "isVerified": true,
+    "reporterName": "sneha",
+    "timestamp": "2026-06-26T12:24:31.722Z"
+  },
+  {
+    "id": "log-1782476310606-5238",
+    "notes": "",
+    "longitude": 80.22371399093278,
+    "category": "E-Waste",
+    "weight": 20,
+    "imagePath": "/uploads/waste-1782476310604-107.jpg",
+    "reporterName": "abc",
+    "timestamp": "2026-06-26T12:18:30.606Z",
+    "latitude": 12.980289191979706,
+    "locationError": "",
+    "isVerified": true
+  }
+]

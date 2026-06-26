@@ -1,0 +1,23 @@
+{
+  "collections": {
+    "logs": {
+      "schema": {
+        "id": { "type": "string", "required": true },
+        "category": { "type": "string", "required": true },
+        "weight": { "type": "number", "required": true },
+        "latitude": { "type": "number", "required": false },
+        "longitude": { "type": "number", "required": false },
+        "isVerified": { "type": "boolean", "required": true },
+        "locationError": { "type": "string", "required": false },
+        "imagePath": { "type": "string", "required": false },
+        "timestamp": { "type": "string", "required": true },
+        "notes": { "type": "string", "required": false },
+        "reporterName": { "type": "string", "required": false }
+      },
+      "rules": {
+        "allow": ["read", "create", "delete"],
+        "deny": ["update"]
+      }
+    }
+  }
+}
