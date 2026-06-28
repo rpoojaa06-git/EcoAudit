@@ -104,10 +104,28 @@ export default function Dashboard({ logs, selectedLog, onSelectLog }: DashboardP
 
   // --- 3. Filter and Search Logic ---
   const filteredLogs = logs.filter((log) => {
-    const matchesSearch = 
-      (log.notes?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      (log.reporterName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) ||
-      log.id.toLowerCase().includes(searchTerm.toLowerCase());
+    const term = searchTerm.trim().toLowerCase();
+    
+    let matchesSearch = true;
+    if (term) {
+      const actualNotes = (log.notes || '').trim().toLowerCase();
+      const displayReporter = (log.reporterName || 'Anonymous').trim().toLowerCase();
+      const logId = log.id.toLowerCase();
+      
+      // Smart check: if user searches for phrases meaning "no notes"
+      const isSearchingNoNotes = 
+        term === 'no custom notes' || 
+        term === 'no note';
+
+      if (isSearchingNoNotes) {
+        matchesSearch = !actualNotes;
+      } else {
+        matchesSearch = 
+          actualNotes.includes(term) ||
+          displayReporter.includes(term) ||
+          logId.includes(term);
+      }
+    }
     
     const matchesCategory = categoryFilter === 'All' || log.category === categoryFilter;
     
