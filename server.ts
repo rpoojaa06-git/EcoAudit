@@ -13,8 +13,8 @@ import { getFirestore, collection, getDocs, addDoc, query, orderBy, deleteDoc, d
 
 // Since we are in ES Modules under Node, we can derive __dirname if needed,
 // but using process.cwd() is preferred and cleaner for project paths.
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
+const __filename = typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : '';
+const __dirname = __filename ? path.dirname(__filename) : process.cwd();
 
 const PORT = 3000;
 const DATA_DIR = path.join(process.cwd(), 'data');
