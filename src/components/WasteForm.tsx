@@ -420,7 +420,7 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
                 Drag and drop an image here
               </span>
               <span className="text-xs text-slate-600 font-semibold mt-1">
-                or click to browse • PNG, JPG, WEBP • Max. 10 MB
+                or click to browse • PNG, JPG, WEBP • Max. 5 MB
               </span>
             </div>
           )}
