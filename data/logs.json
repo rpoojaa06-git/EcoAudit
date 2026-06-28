@@ -1,67 +1,41 @@
 [
   {
-    "id": "log-1782650545449-9933",
-    "timestamp": "2026-06-28T12:42:25.449Z",
-    "imagePath": "/uploads/waste-1782650545449-831.jpg",
-    "isVerified": true,
-    "category": "Metal",
-    "latitude": 12.980243926522721,
-    "longitude": 80.22372703340386,
-    "locationError": "",
-    "weight": 40,
-    "notes": "",
-    "reporterName": "Radhi"
-  },
-  {
-    "id": "log-1782650427312-2627",
-    "category": "Glass",
-    "isVerified": true,
-    "imagePath": "/uploads/waste-1782650427311-450.jpg",
-    "latitude": 12.980254341302443,
-    "timestamp": "2026-06-28T12:40:27.312Z",
-    "weight": 10,
-    "reporterName": "madhu",
-    "notes": "Found this near the river abc.",
-    "longitude": 80.22372792183472,
-    "locationError": ""
-  },
-  {
     "id": "log-1782650286821-4046",
-    "timestamp": "2026-06-28T12:38:06.821Z",
-    "category": "Plastic",
     "imagePath": "",
-    "isVerified": true,
-    "latitude": 13.0255827,
-    "longitude": 80.2586346,
     "locationError": "",
-    "weight": 5,
     "reporterName": "Anonymous",
-    "notes": ""
+    "isVerified": true,
+    "weight": 5,
+    "timestamp": "2026-06-28T12:38:06.821Z",
+    "longitude": 80.2586346,
+    "notes": "",
+    "latitude": 13.0255827,
+    "category": "Plastic"
   },
   {
     "id": "log-1782476671722-1106",
     "latitude": 12.980272852685486,
     "category": "Organic",
+    "longitude": 80.22372892566523,
+    "notes": "",
+    "weight": 5,
+    "timestamp": "2026-06-26T12:24:31.722Z",
+    "reporterName": "sneha",
     "isVerified": true,
     "imagePath": "/uploads/waste-1782476671721-181.jpg",
-    "timestamp": "2026-06-26T12:24:31.722Z",
-    "weight": 5,
-    "reporterName": "sneha",
-    "notes": "",
-    "locationError": "",
-    "longitude": 80.22372892566523
+    "locationError": ""
   },
   {
     "id": "log-1782476310606-5238",
-    "category": "E-Waste",
-    "isVerified": true,
-    "imagePath": "/uploads/waste-1782476310604-107.jpg",
-    "latitude": 12.980289191979706,
     "timestamp": "2026-06-26T12:18:30.606Z",
-    "notes": "",
-    "reporterName": "abc",
     "weight": 20,
+    "notes": "",
     "longitude": 80.22371399093278,
-    "locationError": ""
+    "imagePath": "/uploads/waste-1782476310604-107.jpg",
+    "locationError": "",
+    "reporterName": "abc",
+    "isVerified": true,
+    "category": "E-Waste",
+    "latitude": 12.980289191979706
   }
 ]

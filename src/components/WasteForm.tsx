@@ -70,6 +70,13 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
       alert('Please upload an image file (PNG, JPG, WEBP).');
       return;
     }
+
+    // Explicit 5MB file size limit to prevent oversized payload issues
+    const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+    if (file.size > MAX_FILE_SIZE) {
+      alert('The file is too large. Please select an image smaller than 5MB.');
+      return;
+    }
     
     const reader = new FileReader();
     reader.onloadend = () => {
@@ -305,7 +312,7 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
                 value={weight}
                 onChange={(e) => setWeight(e.target.value)}
                 placeholder="0.00"
-                className="w-full rounded-xl border border-white/40 bg-white/60 pl-4 pr-12 py-3 text-sm text-slate-900 placeholder-slate-500 font-medium focus:bg-white/90 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-200 backdrop-blur-md [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-4 pr-12 py-3 text-sm text-slate-900 placeholder-slate-500 font-medium focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-200 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
               />
               <div className="absolute inset-y-0 right-0 flex items-center pr-4 pointer-events-none">
                 <span className="text-sm font-bold text-slate-600 font-mono">KG</span>
@@ -329,7 +336,7 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
                 value={reporterName}
                 onChange={(e) => setReporterName(e.target.value)}
                 placeholder="Anonymous Eco-Citizen"
-                className="w-full rounded-xl border border-white/40 bg-white/60 pl-11 pr-4 py-3 text-sm text-slate-900 placeholder-slate-500 font-medium focus:bg-white/90 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-200 backdrop-blur-md"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 py-3 text-sm text-slate-900 placeholder-slate-500 font-medium focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-200"
               />
             </div>
           </div>
@@ -338,7 +345,7 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
         {/* Notes (Optional) */}
         <div>
           <label htmlFor="notes" className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
-            Disposal Site Notes (Optional)
+            Additional Notes (Optional)
           </label>
           <div className="relative">
             <div className="absolute top-3 left-4 text-slate-500">
@@ -350,8 +357,8 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
               rows={2}
               value={notes}
               onChange={(e) => setNotes(e.target.value)}
-              placeholder="Provide clean-up details, e.g., 'Collected next to lake trail boundary.'"
-              className="w-full rounded-xl border border-white/40 bg-white/60 pl-11 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-500 font-medium focus:bg-white/90 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-200 backdrop-blur-md resize-none"
+              placeholder="Provide relevant details"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 pl-11 pr-4 py-2.5 text-sm text-slate-900 placeholder-slate-500 font-medium focus:bg-white focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 focus:outline-none transition-all duration-200 resize-none"
             />
           </div>
         </div>
@@ -410,10 +417,10 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
                 <Upload className="h-5 w-5" />
               </div>
               <span className="text-sm font-bold text-slate-800">
-                Drag and drop image here
+                Drag and drop an image here
               </span>
               <span className="text-xs text-slate-600 font-semibold mt-1">
-                or click to select file (PNG, JPG, WEBP)
+                or click to browse • PNG, JPG, WEBP • Max. 10 MB
               </span>
             </div>
           )}

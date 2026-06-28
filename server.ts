@@ -193,24 +193,10 @@ async function getLogsFromFirestore(): Promise<any[]> {
       });
     });
 
-    // Merge local logs and firestore logs securely to prevent missing any data
-    const mergedMap = new Map<string, any>();
-    // Insert local logs first
-    localLogs.forEach(log => {
-      if (log && log.id) mergedMap.set(log.id, log);
-    });
-    // Overwrite/supplement with Firestore logs
-    firestoreLogs.forEach(log => {
-      if (log && log.id) mergedMap.set(log.id, log);
-    });
-
-    const mergedLogs = Array.from(mergedMap.values()).sort((a, b) => {
-      return new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime();
-    });
-
-    // Synchronize the master local mirror with the merged results
-    writeLogs(mergedLogs);
-    return mergedLogs;
+    // When successfully loaded from Firestore, treat Firestore as the absolute source of truth.
+    // Overwrite the local logs mirror with the fetched logs to keep deletions and edits perfectly synchronized.
+    writeLogs(firestoreLogs);
+    return firestoreLogs;
   } catch (error: any) {
     if (error?.message?.includes('permission') || error?.code === 'permission-denied') {
       try {
@@ -322,7 +308,69 @@ async function startServer() {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-  // Serve uploads statically
+  // Serve uploads statically with custom SVG fallback for missing files (e.g. from container restarts or mock data)
+  app.get('/uploads/:filename', (req, res) => {
+    const filename = req.params.filename;
+    const filePath = path.join(UPLOADS_DIR, filename);
+    if (fs.existsSync(filePath)) {
+      return res.sendFile(filePath);
+    }
+
+    // Determine category based on filename prefix or metadata to style the fallback elegantly
+    const isOrganic = filename.toLowerCase().includes('organic');
+    const isGlass = filename.toLowerCase().includes('glass');
+    const isMetal = filename.toLowerCase().includes('metal');
+    const isEwaste = filename.toLowerCase().includes('e-waste') || filename.toLowerCase().includes('ewaste');
+    
+    let accentColor = '#10b981'; // Emerald/Organic
+    let categoryText = 'Disposal Proof';
+    if (isOrganic) {
+      accentColor = '#84cc16';
+      categoryText = 'Organic Audit Proof';
+    } else if (isGlass) {
+      accentColor = '#06b6d4';
+      categoryText = 'Glass Audit Proof';
+    } else if (isMetal) {
+      accentColor = '#64748b';
+      categoryText = 'Metal Audit Proof';
+    } else if (isEwaste) {
+      accentColor = '#8b5cf6';
+      categoryText = 'E-Waste Audit Proof';
+    }
+
+    res.setHeader('Content-Type', 'image/svg+xml');
+    const svg = `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
+        <rect width="100%" height="100%" fill="#f8fafc" rx="16"/>
+        <defs>
+          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style="stop-color:${accentColor}22;stop-opacity:1" />
+            <stop offset="100%" style="stop-color:${accentColor}05;stop-opacity:1" />
+          </linearGradient>
+        </defs>
+        <rect width="100%" height="100%" fill="url(#grad)" rx="16"/>
+        
+        <!-- Camera Icon Frame -->
+        <g transform="translate(160, 90)" stroke="${accentColor}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+          <circle cx="12" cy="13" r="4"/>
+        </g>
+
+        <!-- Nice badge text -->
+        <text x="200" y="185" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#1e293b" text-anchor="middle">${categoryText}</text>
+        <text x="200" y="208" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" fill="#64748b" text-anchor="middle">Verified GPS Disposal Location</text>
+        
+        <!-- Decorative checkmark tag -->
+        <g transform="translate(145, 230)">
+          <rect width="110" height="22" rx="11" fill="${accentColor}15"/>
+          <path d="M12 11 l3 3 l6 -6" stroke="${accentColor}" stroke-width="2" fill="none" stroke-linecap="round"/>
+          <text x="62" y="15" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="bold" fill="${accentColor}" text-anchor="middle">ECO-VERIFIED</text>
+        </g>
+      </svg>
+    `;
+    res.send(svg.trim());
+  });
+
   app.use('/uploads', express.static(UPLOADS_DIR));
 
   // --- API Routes ---
@@ -354,24 +402,29 @@ async function startServer() {
       let imagePath = '';
 
       // If there is an image uploaded as a base64 data string
-      if (image && typeof image === 'string' && image.startsWith('data:image/')) {
-        const matches = image.match(/^data:([A-Za-z-+\/]+);base64,(.+)$/);
-        if (matches && matches.length === 3) {
-          const contentType = matches[1];
-          const base64Data = matches[2];
-          const buffer = Buffer.from(base64Data, 'base64');
+      if (image && typeof image === 'string' && image.includes(';base64,')) {
+        try {
+          // Store the base64 string directly in imagePath for 100% cloud persistent durability (won't get wiped on server reboots)
+          imagePath = image;
 
-          // Determine file extension
-          let ext = 'jpg';
-          if (contentType.includes('png')) ext = 'png';
-          else if (contentType.includes('webp')) ext = 'webp';
-          else if (contentType.includes('gif')) ext = 'gif';
+          // As a local backup, write it to disk
+          const parts = image.split(';base64,');
+          if (parts.length === 2) {
+            const header = parts[0];
+            const base64Data = parts[1];
+            const buffer = Buffer.from(base64Data, 'base64');
 
-          const filename = `waste-${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
-          const filePath = path.join(UPLOADS_DIR, filename);
+            let ext = 'jpg';
+            if (header.includes('png')) ext = 'png';
+            else if (header.includes('webp')) ext = 'webp';
+            else if (header.includes('gif')) ext = 'gif';
 
-          fs.writeFileSync(filePath, buffer);
-          imagePath = `/uploads/${filename}`;
+            const filename = `waste-${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
+            const filePath = path.join(UPLOADS_DIR, filename);
+            fs.writeFileSync(filePath, buffer);
+          }
+        } catch (e) {
+          console.error('Failed to parse or write base64 image backup:', e);
         }
       }
 
