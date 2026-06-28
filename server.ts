@@ -6,15 +6,9 @@
 import express from 'express';
 import path from 'path';
 import fs from 'fs';
-import { fileURLToPath } from 'url';
 import { createServer as createViteServer } from 'vite';
 import { initializeApp } from 'firebase/app';
 import { getFirestore, collection, getDocs, addDoc, query, orderBy, deleteDoc, doc, writeBatch } from 'firebase/firestore';
-
-// Since we are in ES Modules under Node, we can derive __dirname if needed,
-// but using process.cwd() is preferred and cleaner for project paths.
-const __filename = typeof import.meta !== 'undefined' && import.meta.url ? fileURLToPath(import.meta.url) : '';
-const __dirname = __filename ? path.dirname(__filename) : process.cwd();
 
 const PORT = 3000;
 const DATA_DIR = path.join(process.cwd(), 'data');
