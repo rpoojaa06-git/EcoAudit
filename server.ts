@@ -8,20 +8,37 @@ import path from 'path';
 import fs from 'fs';
 import { createServer as createViteServer } from 'vite';
 import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, getDocs, addDoc, query, orderBy, deleteDoc, doc, writeBatch } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, addDoc, query, orderBy, deleteDoc, doc, writeBatch, updateDoc } from 'firebase/firestore';
 
 const PORT = 3000;
 const DATA_DIR = path.join(process.cwd(), 'data');
-const UPLOADS_DIR = path.join(DATA_DIR, 'uploads');
 const DB_FILE = path.join(DATA_DIR, 'logs.json');
 
-// Ensure database and uploads directories exist
+// Helper to sanitize log image path: clears legacy /uploads/ and trims/removes internal newlines/spaces from base64 strings so they are exactly 1 line max
+function sanitizeImagePath(imagePath: string): string {
+  if (!imagePath) return '';
+  const trimmed = imagePath.trim();
+  if (trimmed.includes('/uploads/') || (!trimmed.startsWith('data:') && trimmed !== '')) {
+    return '';
+  }
+  // Remove all newlines, carriage returns, and internal spaces/whitespaces
+  return trimmed.replace(/[\r\n\s]+/g, '');
+}
+
+// Ensure database directory exists and clean up obsolete uploads directory
 function initStorage() {
   if (!fs.existsSync(DATA_DIR)) {
     fs.mkdirSync(DATA_DIR, { recursive: true });
   }
-  if (!fs.existsSync(UPLOADS_DIR)) {
-    fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+  
+  const obsoleteUploadsDir = path.join(DATA_DIR, 'uploads');
+  if (fs.existsSync(obsoleteUploadsDir)) {
+    try {
+      fs.rmSync(obsoleteUploadsDir, { recursive: true, force: true });
+      console.log('[EcoAudit Server] Cleaned up obsolete local uploads directory');
+    } catch (e) {
+      console.error('[EcoAudit Server] Failed to delete obsolete uploads directory:', e);
+    }
   }
   
   // Consolidate and clean up any old .ecoaudit-local-db.json that was created in the root
@@ -67,7 +84,14 @@ function readLogs(): any[] {
     if (!data) {
       return [];
     }
-    return JSON.parse(data);
+    const parsed = JSON.parse(data);
+    if (Array.isArray(parsed)) {
+      return parsed.map((log: any) => {
+        const imagePath = sanitizeImagePath(log.imagePath);
+        return { ...log, imagePath };
+      });
+    }
+    return [];
   } catch (err) {
     console.error('Error reading logs database, resetting...', err);
     try {
@@ -83,7 +107,11 @@ function readLogs(): any[] {
 function writeLogs(logs: any[]): void {
   try {
     initStorage();
-    const content = JSON.stringify(logs, null, 2);
+    const sanitizedLogs = logs.map(log => ({
+      ...log,
+      imagePath: sanitizeImagePath(log.imagePath)
+    }));
+    const content = JSON.stringify(sanitizedLogs, null, 2);
     const tmpFile = DB_FILE + '.tmp';
     fs.writeFileSync(tmpFile, content, 'utf8');
     fs.renameSync(tmpFile, DB_FILE);
@@ -187,9 +215,26 @@ async function getLogsFromFirestore(): Promise<any[]> {
     
     const firestoreLogs: any[] = [];
     querySnapshot.forEach((document: any) => {
+      const data = document.data();
+      const rawImagePath = data.imagePath || '';
+      const imagePath = sanitizeImagePath(rawImagePath);
+      
+      // If the imagePath is modified after sanitization (e.g. was a legacy path or contained newlines/whitespaces), update Firestore permanently
+      if (rawImagePath !== imagePath) {
+        try {
+          const docRef = doc(db, 'logs', document.id);
+          updateDoc(docRef, { imagePath }).catch(e => {
+            console.error(`[EcoAudit Server] Error updating sanitized image in Firestore for doc ${document.id}:`, e);
+          });
+        } catch (e) {
+          console.error('[EcoAudit Server] Failed to initiate doc update:', e);
+        }
+      }
+
       firestoreLogs.push({
         id: document.id,
-        ...document.data()
+        ...data,
+        imagePath
       });
     });
 
@@ -308,71 +353,6 @@ async function startServer() {
   app.use(express.json({ limit: '10mb' }));
   app.use(express.urlencoded({ limit: '10mb', extended: true }));
 
-  // Serve uploads statically with custom SVG fallback for missing files (e.g. from container restarts or mock data)
-  app.get('/uploads/:filename', (req, res) => {
-    const filename = req.params.filename;
-    const filePath = path.join(UPLOADS_DIR, filename);
-    if (fs.existsSync(filePath)) {
-      return res.sendFile(filePath);
-    }
-
-    // Determine category based on filename prefix or metadata to style the fallback elegantly
-    const isOrganic = filename.toLowerCase().includes('organic');
-    const isGlass = filename.toLowerCase().includes('glass');
-    const isMetal = filename.toLowerCase().includes('metal');
-    const isEwaste = filename.toLowerCase().includes('e-waste') || filename.toLowerCase().includes('ewaste');
-    
-    let accentColor = '#10b981'; // Emerald/Organic
-    let categoryText = 'Disposal Proof';
-    if (isOrganic) {
-      accentColor = '#84cc16';
-      categoryText = 'Organic Audit Proof';
-    } else if (isGlass) {
-      accentColor = '#06b6d4';
-      categoryText = 'Glass Audit Proof';
-    } else if (isMetal) {
-      accentColor = '#64748b';
-      categoryText = 'Metal Audit Proof';
-    } else if (isEwaste) {
-      accentColor = '#8b5cf6';
-      categoryText = 'E-Waste Audit Proof';
-    }
-
-    res.setHeader('Content-Type', 'image/svg+xml');
-    const svg = `
-      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 300" width="100%" height="100%">
-        <rect width="100%" height="100%" fill="#f8fafc" rx="16"/>
-        <defs>
-          <linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" style="stop-color:${accentColor}22;stop-opacity:1" />
-            <stop offset="100%" style="stop-color:${accentColor}05;stop-opacity:1" />
-          </linearGradient>
-        </defs>
-        <rect width="100%" height="100%" fill="url(#grad)" rx="16"/>
-        
-        <!-- Camera Icon Frame -->
-        <g transform="translate(160, 90)" stroke="${accentColor}" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
-          <circle cx="12" cy="13" r="4"/>
-        </g>
-
-        <!-- Nice badge text -->
-        <text x="200" y="185" font-family="system-ui, -apple-system, sans-serif" font-size="14" font-weight="700" fill="#1e293b" text-anchor="middle">${categoryText}</text>
-        <text x="200" y="208" font-family="system-ui, -apple-system, sans-serif" font-size="11" font-weight="500" fill="#64748b" text-anchor="middle">Verified GPS Disposal Location</text>
-        
-        <!-- Decorative checkmark tag -->
-        <g transform="translate(145, 230)">
-          <rect width="110" height="22" rx="11" fill="${accentColor}15"/>
-          <path d="M12 11 l3 3 l6 -6" stroke="${accentColor}" stroke-width="2" fill="none" stroke-linecap="round"/>
-          <text x="62" y="15" font-family="system-ui, -apple-system, sans-serif" font-size="9" font-weight="bold" fill="${accentColor}" text-anchor="middle">ECO-VERIFIED</text>
-        </g>
-      </svg>
-    `;
-    res.send(svg.trim());
-  });
-
-  app.use('/uploads', express.static(UPLOADS_DIR));
-
   // --- API Routes ---
 
   // Health check
@@ -403,29 +383,7 @@ async function startServer() {
 
       // If there is an image uploaded as a base64 data string
       if (image && typeof image === 'string' && image.includes(';base64,')) {
-        try {
-          // Store the base64 string directly in imagePath for 100% cloud persistent durability (won't get wiped on server reboots)
-          imagePath = image;
-
-          // As a local backup, write it to disk
-          const parts = image.split(';base64,');
-          if (parts.length === 2) {
-            const header = parts[0];
-            const base64Data = parts[1];
-            const buffer = Buffer.from(base64Data, 'base64');
-
-            let ext = 'jpg';
-            if (header.includes('png')) ext = 'png';
-            else if (header.includes('webp')) ext = 'webp';
-            else if (header.includes('gif')) ext = 'gif';
-
-            const filename = `waste-${Date.now()}-${Math.floor(Math.random() * 1000)}.${ext}`;
-            const filePath = path.join(UPLOADS_DIR, filename);
-            fs.writeFileSync(filePath, buffer);
-          }
-        } catch (e) {
-          console.error('Failed to parse or write base64 image backup:', e);
-        }
+        imagePath = image;
       }
 
       const logPayload = {

@@ -26,9 +26,8 @@ service cloud.firestore {
 
     // Logs collection rules
     match /logs/{logId} {
-      allow read, delete: if true;
+      allow read, update, delete: if true;
       allow create: if isValidLog(request.resource.data);
-      allow update: if false; // Immutable ledger enforcement
     }
   }
 }
