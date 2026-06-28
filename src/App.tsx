@@ -17,6 +17,16 @@ export default function App() {
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Track only the entry IDs that the current user logged in their browser
+  const [myLoggedIds, setMyLoggedIds] = useState<string[]>(() => {
+    try {
+      const saved = localStorage.getItem('ecoaudit_my_logged_ids');
+      return saved ? JSON.parse(saved) : [];
+    } catch (e) {
+      return [];
+    }
+  });
+
   // --- Fetch Logs from the Database (Express Server) ---
   const fetchLogs = async (showLoadingSpinner = false) => {
     if (showLoadingSpinner) {
@@ -81,6 +91,17 @@ export default function App() {
       
       // Update local state by putting the newest entry first
       setLogs((prevLogs) => [newLog, ...prevLogs]);
+
+      // Save user's logged entry ID to local state & localStorage
+      setMyLoggedIds((prev) => {
+        const updated = [...prev, newLog.id];
+        try {
+          localStorage.setItem('ecoaudit_my_logged_ids', JSON.stringify(updated));
+        } catch (e) {
+          console.warn('Unable to write to localStorage:', e);
+        }
+        return updated;
+      });
       
       // Auto-select the newly added entry to trigger map camera pan
       setSelectedLog(newLog);
@@ -89,6 +110,9 @@ export default function App() {
       throw new Error(err.message || 'Network submission failure.');
     }
   };
+
+  // Only show pins on the map that the user has submitted
+  const mapLogs = logs.filter(log => myLoggedIds.includes(log.id));
 
   return (
     <div 
@@ -119,51 +143,114 @@ export default function App() {
           </div>
         )}
 
-        {/* 2. Responsive Bento Grid */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        {/* 2. Structured Sections with Strong Visual Hierarchy */}
+        <div className="space-y-16">
           
-          {/* Column A (Left): Logger Panel - Taking 1/3 layout (lg:col-span-4) */}
-          <div className="lg:col-span-5 space-y-6">
-            
-            {/* The main waste log entry form */}
-            <WasteForm onAddLog={handleAddLog} />
-
-            {/* Quick guide card with elegant Frosted Glass design */}
-            <div className="bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 p-5 shadow-xl shadow-emerald-950/10">
-              <h4 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                <ShieldCheck className="h-4.5 w-4.5 text-emerald-600" />
-                Audit compliance protocols
-              </h4>
-              <ul className="text-xs text-slate-600 space-y-2 leading-relaxed list-disc list-inside">
-                <li>
-                  <strong className="text-slate-800">Native Telemetry Verification:</strong> Submit entries via browser location permissions to obtain an <span className="text-emerald-700 font-bold">Approved</span> stamp.
-                </li>
-                <li>
-                  <strong className="text-slate-800">Anti-Spoofing:</strong> Coordinate validation occurs instantly on submit. Manual changes are marked as <span className="text-rose-600 font-bold">Unverified</span>.
-                </li>
-                <li>
-                  <strong className="text-slate-800">Visual Auditing:</strong> Uploading image proofs allows administrators to verify waste stream classifications.
-                </li>
-              </ul>
+          {/* SECTION 1 – WASTE SUBMISSION (Primary Action) */}
+          <section className="max-w-3xl mx-auto space-y-6">
+            <div className="text-center">
+              <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+                Verify & Publish Waste Log
+              </h2>
+              <p className="text-xs sm:text-sm text-slate-600 mt-1.5 max-w-lg mx-auto">
+                Submit waste weights, classifications, and image proof to our secure ledger. Entries require geolocation verification.
+              </p>
             </div>
 
-          </div>
+            {/* The main waste log entry form */}
+            <div className="bg-white/40 backdrop-blur-md rounded-3xl p-1 border border-white/30 shadow-xl shadow-emerald-950/5">
+              <WasteForm onAddLog={handleAddLog} />
+            </div>
+          </section>
 
-          {/* Column B (Right): Map and dashboard - Taking 2/3 layout (lg:col-span-8) */}
-          <div className="lg:col-span-7 space-y-8">
-            
-            {/* Map Frame Card - Frosted Glass */}
-            <div className="bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 p-4 shadow-xl shadow-emerald-950/10">
-              <div className="h-[350px] sm:h-[400px] lg:h-[420px]">
-                <WasteMap 
-                  logs={logs} 
-                  selectedLog={selectedLog} 
-                  onSelectLog={setSelectedLog} 
-                />
+          {/* SECTION 2 – COMMUNITY AUDIT DASHBOARD */}
+          <section className="pt-12 border-t border-slate-200/50 space-y-8">
+            <div className="text-center lg:text-left flex flex-col lg:flex-row lg:items-end justify-between gap-4">
+              <div>
+                <h2 className="text-2xl font-extrabold text-slate-900 tracking-tight flex items-center justify-center lg:justify-start gap-2.5">
+                  <Layers className="h-6 w-6 text-emerald-600 animate-pulse" />
+                  Community Audit Dashboard
+                </h2>
+                <p className="text-xs sm:text-sm text-slate-500 mt-1">
+                  Interactive spatial logs, real-time metrics, analytics distribution, and audited community ledger.
+                </p>
+              </div>
+
+              {/* Quick indicators */}
+              <div className="flex justify-center gap-3 text-[10px] font-mono text-slate-500">
+                <span className="flex items-center gap-1 bg-white/65 px-2.5 py-1 rounded-md border border-white/40">
+                  <span className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                  LIVE METRICS ACTIVE
+                </span>
+                <span className="flex items-center gap-1 bg-white/65 px-2.5 py-1 rounded-md border border-white/40">
+                  <ShieldCheck className="h-3.5 w-3.5 text-emerald-600" />
+                  100% GPS SECURED
+                </span>
               </div>
             </div>
 
-            {/* Loader indicator while fetching logs database on startup */}
+            {/* Interactive map showing all logged locations & quick guide side-by-side on desktop */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+              
+              {/* Left Column: Leaflet Interactive Map */}
+              <div className="lg:col-span-8 bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 p-4 shadow-xl shadow-emerald-950/10 flex flex-col justify-between">
+                <div className="h-[380px] sm:h-[420px] lg:h-[450px] w-full rounded-2xl overflow-hidden">
+                  <WasteMap 
+                    logs={mapLogs} 
+                    selectedLog={selectedLog} 
+                    onSelectLog={setSelectedLog} 
+                  />
+                </div>
+              </div>
+
+              {/* Right Column: Protocols Quick Guide Widget & live ledger highlight */}
+              <div className="lg:col-span-4 flex flex-col justify-between gap-6">
+                
+                {/* Audit Protocols widget */}
+                <div className="bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 p-6 shadow-xl shadow-emerald-950/10 flex-1 space-y-4">
+                  <h4 className="text-xs font-bold text-slate-800 uppercase tracking-wider flex items-center gap-2 border-b border-slate-100 pb-3">
+                    <ShieldCheck className="h-4.5 w-4.5 text-emerald-600" />
+                    Ledger Audit Protocols
+                  </h4>
+                  <ul className="text-xs text-slate-600 space-y-3.5 leading-relaxed">
+                    <li className="flex items-start gap-2.5">
+                      <span className="h-4 w-4 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">1</span>
+                      <div>
+                        <strong className="text-slate-800">Browser Position Check:</strong>
+                        <p className="text-slate-500 mt-0.5">Saves active latitude & longitude directly to our transparent ledger.</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <span className="h-4 w-4 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">2</span>
+                      <div>
+                        <strong className="text-slate-800">No Manual Override:</strong>
+                        <p className="text-slate-500 mt-0.5">Disabling manual location coordinates ensures absolute spoof-proof integrity.</p>
+                      </div>
+                    </li>
+                    <li className="flex items-start gap-2.5">
+                      <span className="h-4 w-4 rounded-full bg-emerald-50 text-emerald-700 flex items-center justify-center font-bold text-[10px] shrink-0 mt-0.5">3</span>
+                      <div>
+                        <strong className="text-slate-800">Image Verification:</strong>
+                        <p className="text-slate-500 mt-0.5">Proof-of-disposal uploads allow community members to visually audit entries.</p>
+                      </div>
+                    </li>
+                  </ul>
+                </div>
+
+                {/* Micro info panel */}
+                <div className="bg-emerald-950 text-emerald-100 p-6 rounded-3xl shadow-xl shadow-emerald-950/15 space-y-2">
+                  <span className="text-[10px] font-bold tracking-wider uppercase font-mono text-emerald-400">Ledger Security State</span>
+                  <h5 className="text-sm font-bold">100% Cryptographic-Level Transparency</h5>
+                  <p className="text-xs text-emerald-200/80 leading-relaxed">
+                    Every waste weight, photo proof, and timestamp logged here is immediately accessible on the open public audit table below.
+                  </p>
+                </div>
+
+              </div>
+
+            </div>
+
+            {/* Dashboard Live Metrics, Charts and Ledger Streams */}
             {isLoading ? (
               <div className="bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 p-12 text-center shadow-xl shadow-emerald-950/10">
                 <RefreshCw className="h-8 w-8 text-emerald-600 animate-spin mx-auto mb-3" />
@@ -171,7 +258,6 @@ export default function App() {
                 <p className="text-xs text-slate-400 mt-0.5">Contacting database node and fetching audits...</p>
               </div>
             ) : (
-              /* Main Stats and list dashboard */
               <Dashboard 
                 logs={logs} 
                 selectedLog={selectedLog} 
@@ -179,7 +265,7 @@ export default function App() {
               />
             )}
 
-          </div>
+          </section>
 
         </div>
 

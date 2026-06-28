@@ -60,10 +60,6 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
   const [isVerifying, setIsVerifying] = useState(false);
   const [verificationError, setVerificationError] = useState<string | null>(null);
   const [showOverrideModal, setShowOverrideModal] = useState(false);
-  
-  // Override coordinates state
-  const [manualLat, setManualLat] = useState<string>('28.6139');
-  const [manualLng, setManualLng] = useState<string>('77.2090');
 
   // Submit states
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -99,9 +95,7 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
     }
   };
 
-  // Process core submit log flow
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const startVerificationAndSubmit = async () => {
     if (!category) {
       alert('Please select a waste category.');
       return;
@@ -123,6 +117,22 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
       setIsVerifying(false);
       setShowOverrideModal(true);
       return;
+    }
+
+    // Try fail-fast if permissions are explicitly denied in browser query
+    if (navigator.permissions && navigator.permissions.query) {
+      try {
+        const status = await navigator.permissions.query({ name: 'geolocation' as PermissionName });
+        if (status.state === 'denied') {
+          const errorMsg = 'Location permission is explicitly blocked by your browser settings. Please click the lock icon left of the address bar to unblock it.';
+          setVerificationError(errorMsg);
+          setIsVerifying(false);
+          setShowOverrideModal(true);
+          return;
+        }
+      } catch (err) {
+        console.warn('Unable to query geolocation permission:', err);
+      }
     }
 
     navigator.geolocation.getCurrentPosition(
@@ -184,43 +194,13 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
     );
   };
 
-  // Submit manual override
-  const handleManualOverrideSubmit = async () => {
-    const weightNum = parseFloat(weight);
-    const latNum = parseFloat(manualLat);
-    const lngNum = parseFloat(manualLng);
-
-    if (isNaN(latNum) || latNum < -90 || latNum > 90 || isNaN(lngNum) || lngNum < -180 || lngNum > 180) {
-      alert('Please enter valid latitude (-90 to 90) and longitude (-180 to 180) values.');
-      return;
-    }
-
-    setShowOverrideModal(false);
-    setIsSubmitting(true);
-    try {
-      await onAddLog({
-        category,
-        weight: weightNum,
-        latitude: latNum,
-        longitude: lngNum,
-        isVerified: false,
-        locationError: verificationError || 'User Manual Override',
-        image: imagePreview || undefined,
-        notes,
-        reporterName: reporterName.trim() || 'Anonymous'
-      });
-
-      // Reset form
-      setWeight('');
-      setNotes('');
-      setReporterName('');
-      setImagePreview(null);
-    } catch (err: any) {
-      alert('Failed to save override log: ' + err.message);
-    } finally {
-      setIsSubmitting(false);
-    }
+  // Process core submit log flow
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await startVerificationAndSubmit();
   };
+
+  // Manual coordinates overrides are completely disabled to ensure anti-fraud compliant entries.
 
   return (
     <div className="bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 p-6 md:p-8 shadow-xl shadow-emerald-950/10 relative overflow-hidden" id="waste-form-section">
@@ -238,9 +218,19 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
           <p className="text-sm text-slate-500 max-w-sm mt-2">
             Verifying your physical location with native browser telemetry. This ensures transparent ledger entries.
           </p>
-          <div className="mt-4 flex items-center gap-1.5 font-mono text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
-            <Loader2 className="h-3 w-3 animate-spin" />
-            <span>ACQUIRING POSITION...</span>
+          <div className="mt-4 flex flex-col items-center gap-3">
+            <div className="flex items-center gap-1.5 font-mono text-xs text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-md">
+              <Loader2 className="h-3 w-3 animate-spin" />
+              <span>ACQUIRING POSITION...</span>
+            </div>
+            
+            <button
+              type="button"
+              onClick={() => setIsVerifying(false)}
+              className="mt-2 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-500 py-2 px-4 cursor-pointer transition-all"
+            >
+              Cancel Verification
+            </button>
           </div>
         </div>
       )}
@@ -459,87 +449,63 @@ export default function WasteForm({ onAddLog }: WasteFormProps) {
 
       </form>
 
-      {/* Graceful Location Error Handling Dialog (Bonus Requirement) */}
+      {/* Graceful Location Error Handling Dialog (Anti-fraud Geolocation Required) */}
       {showOverrideModal && (
         <div className="fixed inset-0 bg-slate-900/45 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in">
           <div className="bg-white rounded-2xl max-w-md w-full border border-slate-100 shadow-xl overflow-hidden p-6 relative">
             
-            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-amber-50 border border-amber-100 text-amber-600 mb-4">
-              <AlertTriangle className="h-6 w-6" />
+            <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-emerald-50 border border-emerald-100 text-emerald-600 mb-4">
+              <Compass className="h-6 w-6 animate-pulse" />
             </div>
 
             <h3 className="text-lg font-bold text-slate-900 tracking-tight">
-              Geolocation Verification Suspended
+              Location Verification Required
             </h3>
             
-            <div className="mt-2 text-sm text-slate-500 space-y-2">
+            <div className="mt-2 text-sm text-slate-500 space-y-4">
               <p>
-                <strong>Why is this happening?</strong> {verificationError || "The browser's location telemetry could not be acquired."}
+                <strong>Why is this required?</strong> {verificationError || "The browser's location telemetry could not be acquired."}
               </p>
               <p>
-                EcoAudit enforces strict anti-fraud validation to verify that logs represent real physical waste disposals.
+                To keep our community audit data accurate, verifiable, and completely free of spam or fraudulent entries, EcoAudit enforces a strict anti-fraud location policy. Manual coordinates inputs are disabled.
               </p>
-              <p className="bg-slate-50 p-2.5 rounded-lg border border-slate-100 text-xs text-slate-600 leading-relaxed">
-                🚨 <strong>Manual Override Policy:</strong> You may submit this log manually. However, it will be marked permanently as <span className="text-rose-600 font-bold font-mono">UNVERIFIED / OVERRIDE</span> on the community audit map.
-              </p>
-            </div>
-
-            {/* Coordinates Override Input (Simple and Clear) */}
-            <div className="mt-4 grid grid-cols-2 gap-3">
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Manual Latitude
-                </label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  min="-90"
-                  max="90"
-                  value={manualLat}
-                  onChange={(e) => setManualLat(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-800 font-mono"
-                />
-              </div>
-              <div>
-                <label className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1">
-                  Manual Longitude
-                </label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  min="-180"
-                  max="180"
-                  value={manualLng}
-                  onChange={(e) => setManualLng(e.target.value)}
-                  className="w-full rounded-lg border border-slate-200 px-3 py-2 text-xs text-slate-800 font-mono"
-                />
+              
+              <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 text-xs text-slate-600 space-y-2">
+                <span className="font-bold text-slate-700 block">How to enable location permissions:</span>
+                <ul className="list-disc pl-4 space-y-1">
+                  <li>
+                    <strong>Chrome / Edge / Brave:</strong> Click the <span className="font-semibold text-slate-800">lock icon 🔒</span> next to the URL, and switch "Location" to <span className="font-semibold text-slate-800">Allow</span>.
+                  </li>
+                  <li>
+                    <strong>Safari:</strong> Go to <span className="font-semibold text-slate-800">Settings &gt; Websites &gt; Location</span>, and select <span className="font-semibold text-slate-800">Allow</span> for EcoAudit.
+                  </li>
+                  <li>
+                    <strong>Firefox:</strong> Click the <span className="font-semibold text-slate-800">permissions pill</span> left of the URL bar, clear blocked permissions, and reload.
+                  </li>
+                  <li>
+                    <strong>Mobile Devices:</strong> Ensure Location Services / GPS is turned on in your phone's quick settings or system preferences.
+                  </li>
+                </ul>
               </div>
             </div>
 
             <div className="mt-6 flex flex-col sm:flex-row gap-2">
               <button
                 type="button"
-                onClick={handleManualOverrideSubmit}
-                className="flex-1 rounded-xl bg-slate-900 hover:bg-slate-800 text-xs font-semibold text-white py-2.5 px-4 cursor-pointer text-center"
-              >
-                Proceed as Unverified
-              </button>
-              <button
-                type="button"
                 onClick={() => {
                   setShowOverrideModal(false);
-                  // Trigger reload or restart location prompt
-                  handleSubmit(new Event('submit') as any);
+                  // Trigger location verification prompt again
+                  startVerificationAndSubmit();
                 }}
-                className="rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-600 py-2.5 px-4 cursor-pointer text-center flex items-center justify-center gap-1"
+                className="flex-1 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-xs font-semibold text-white py-2.5 px-4 cursor-pointer text-center flex items-center justify-center gap-1.5 shadow-sm shadow-emerald-600/10"
               >
-                <RotateCcw className="h-3 w-3" />
-                Retry Telemetry
+                <RotateCcw className="h-3.5 w-3.5" />
+                Retry Location Access
               </button>
               <button
                 type="button"
                 onClick={() => setShowOverrideModal(false)}
-                className="rounded-xl border border-transparent hover:bg-slate-50 text-xs font-semibold text-slate-400 py-2.5 px-3 cursor-pointer"
+                className="rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-500 py-2.5 px-4 cursor-pointer text-center"
               >
                 Cancel
               </button>

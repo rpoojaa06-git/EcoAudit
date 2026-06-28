@@ -1,28 +1,28 @@
 [
   {
     "id": "log-1782476671722-1106",
-    "category": "Organic",
-    "weight": 5,
-    "longitude": 80.22372892566523,
-    "notes": "",
-    "reporterName": "sneha",
-    "imagePath": "/uploads/waste-1782476671721-181.jpg",
-    "locationError": "",
-    "latitude": 12.980272852685486,
     "timestamp": "2026-06-26T12:24:31.722Z",
-    "isVerified": true
+    "weight": 5,
+    "latitude": 12.980272852685486,
+    "imagePath": "/uploads/waste-1782476671721-181.jpg",
+    "category": "Organic",
+    "locationError": "",
+    "reporterName": "sneha",
+    "longitude": 80.22372892566523,
+    "isVerified": true,
+    "notes": ""
   },
   {
     "id": "log-1782476310606-5238",
-    "locationError": "",
-    "reporterName": "abc",
-    "imagePath": "/uploads/waste-1782476310604-107.jpg",
-    "category": "E-Waste",
     "longitude": 80.22371399093278,
+    "reporterName": "abc",
+    "locationError": "",
     "notes": "",
-    "weight": 20,
-    "latitude": 12.980289191979706,
     "isVerified": true,
-    "timestamp": "2026-06-26T12:18:30.606Z"
+    "timestamp": "2026-06-26T12:18:30.606Z",
+    "weight": 20,
+    "category": "E-Waste",
+    "imagePath": "/uploads/waste-1782476310604-107.jpg",
+    "latitude": 12.980289191979706
   }
 ]

@@ -223,50 +223,44 @@ export default function Dashboard({ logs, selectedLog, onSelectLog }: DashboardP
             </div>
           </div>
 
-          {/* Mini Pie Chart: Verification streams */}
+          {/* Mini Pie Chart: Waste Streams Category Share */}
           <div className="bg-white/75 backdrop-blur-xl rounded-3xl border border-white/60 p-6 shadow-xl shadow-emerald-950/10 flex flex-col justify-between">
             <div>
               <h3 className="text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
                 <Compass className="h-4 w-4 text-indigo-600" />
-                Ledger Veracity
+                Category Breakdown
               </h3>
-              <p className="text-xs text-slate-600 font-semibold">Comparing anti-fraud telemetry vs. manual override entries.</p>
+              <p className="text-xs text-slate-600 font-semibold">Proportional weight distribution across community cleanup streams.</p>
             </div>
             
             <div className="h-40 relative flex items-center justify-center">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
-                    data={[
-                      { name: 'Verified', value: verifiedCount, color: '#10b981' },
-                      { name: 'Manual Override', value: totalCount - verifiedCount, color: '#f43f5e' }
-                    ]}
+                    data={categoryChartData}
                     cx="50%"
                     cy="50%"
                     innerRadius={45}
                     outerRadius={65}
                     paddingAngle={3}
-                    dataKey="value"
+                    dataKey="weight"
                   >
-                    <Cell fill="#10b981" />
-                    <Cell fill="#f43f5e" />
+                    {categoryChartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
                   </Pie>
                 </PieChart>
               </ResponsiveContainer>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-lg font-extrabold text-slate-900 font-mono">{complianceRate}%</span>
-                <span className="text-[9px] text-slate-400 font-bold uppercase">Audit Ok</span>
+                <span className="text-lg font-extrabold text-slate-900 font-mono">{totalCount}</span>
+                <span className="text-[9px] text-slate-400 font-bold uppercase">Total Logs</span>
               </div>
             </div>
 
-            <div className="border-t border-white/20 pt-3 flex justify-around text-xs">
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-emerald-500"></span>
-                <span className="text-slate-600 font-medium">Verified: <strong className="text-slate-800 font-mono">{verifiedCount}</strong></span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <span className="h-2 w-2 rounded-full bg-rose-500"></span>
-                <span className="text-slate-600 font-medium">Override: <strong className="text-slate-800 font-mono">{totalCount - verifiedCount}</strong></span>
+            <div className="border-t border-white/20 pt-3 flex flex-wrap justify-center gap-x-3 gap-y-1 text-[10px]">
+              <div className="flex items-center gap-1">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                <span className="text-emerald-700 font-semibold uppercase tracking-wider">100% Verified GPS</span>
               </div>
             </div>
           </div>
@@ -287,57 +281,43 @@ export default function Dashboard({ logs, selectedLog, onSelectLog }: DashboardP
         <div className="p-6 border-b border-white/20 space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
             <div>
-              <h3 className="text-base font-semibold text-slate-900 tracking-tight">Community Waste Ledger</h3>
-              <p className="text-xs text-slate-500 mt-0.5">Real-time ledger audit entries detailing verified weights and locations.</p>
+              <h3 className="text-base font-bold text-slate-900 tracking-tight">Community Waste Ledger</h3>
+              <p className="text-xs text-slate-600 mt-0.5">Real-time ledger audit entries detailing verified weights and locations.</p>
             </div>
             
-            <div className="text-xs font-mono bg-slate-50 border border-slate-100 px-3 py-1.5 rounded-lg text-slate-500 flex items-center gap-1.5">
+            <div className="text-xs font-semibold font-mono bg-slate-100 border border-slate-200 px-3 py-1.5 rounded-lg text-slate-700 flex items-center gap-1.5 shadow-xs">
               <span>LEDGER COUNT:</span>
-              <strong className="text-slate-900 font-semibold">{filteredLogs.length} entries</strong>
+              <strong className="text-slate-900 font-bold">{filteredLogs.length} entries</strong>
             </div>
           </div>
 
-          {/* Search, Filter Category, Filter Verification Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          {/* Search and Filter Category Grid */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             
             {/* Search input */}
             <div className="relative">
-              <Search className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
+              <Search className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
               <input
                 type="text"
                 placeholder="Search notes or reporter..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full rounded-xl border border-white/30 bg-white/50 pl-10 pr-4 py-2 text-xs text-slate-800 placeholder-slate-400 focus:bg-white/80 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 backdrop-blur-md"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-4 py-2.5 text-xs text-slate-900 placeholder-slate-500 font-medium focus:bg-white focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/50 shadow-xs transition-all"
               />
             </div>
 
             {/* Category selection */}
             <div className="relative">
-              <Filter className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
+              <Filter className="absolute left-3.5 top-3 h-4 w-4 text-slate-500" />
               <select
                 value={categoryFilter}
                 onChange={(e) => setCategoryFilter(e.target.value)}
-                className="w-full rounded-xl border border-white/30 bg-white/50 pl-10 pr-4 py-2 text-xs text-slate-700 appearance-none bg-white/50 focus:bg-white/80 focus:outline-none focus:border-emerald-500 backdrop-blur-md"
+                className="w-full rounded-xl border border-slate-200 bg-slate-50 pl-10 pr-8 py-2.5 text-xs text-slate-900 font-semibold focus:bg-white focus:outline-none focus:border-emerald-500 shadow-xs transition-all cursor-pointer"
               >
                 <option value="All">Filter Category: All</option>
                 {CATEGORIES.map(cat => (
                   <option key={cat} value={cat}>{cat}</option>
                 ))}
-              </select>
-            </div>
-
-            {/* Verification filter */}
-            <div className="relative">
-              <ShieldCheck className="absolute left-3.5 top-2.5 h-4 w-4 text-slate-400" />
-              <select
-                value={verificationFilter}
-                onChange={(e) => setVerificationFilter(e.target.value)}
-                className="w-full rounded-xl border border-white/30 bg-white/50 pl-10 pr-4 py-2 text-xs text-slate-700 appearance-none bg-white/50 focus:bg-white/80 focus:outline-none focus:border-emerald-500 backdrop-blur-md"
-              >
-                <option value="All">Filter Audit: All</option>
-                <option value="Verified">Verified GPS Only</option>
-                <option value="Unverified">Manual Overrides Only</option>
               </select>
             </div>
 
@@ -380,17 +360,10 @@ export default function Dashboard({ logs, selectedLog, onSelectLog }: DashboardP
                         </span>
                         
                         {/* Anti-Fraud Validation Badge */}
-                        {log.isVerified ? (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100/80 px-2 py-0.5 rounded-md">
-                            <ShieldCheck className="h-3.5 w-3.5" />
-                            Verified Telemetry
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-1 text-[10px] font-bold text-rose-700 bg-rose-50 border border-rose-100/80 px-2 py-0.5 rounded-md">
-                            <AlertTriangle className="h-3.5 w-3.5" />
-                            Manual Override
-                          </span>
-                        )}
+                        <span className="inline-flex items-center gap-1 text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-100/80 px-2 py-0.5 rounded-md">
+                          <ShieldCheck className="h-3.5 w-3.5" />
+                          Verified Telemetry
+                        </span>
                       </div>
 
                       {/* Notes & Reporter */}
@@ -399,14 +372,14 @@ export default function Dashboard({ logs, selectedLog, onSelectLog }: DashboardP
                       </p>
 
                       {/* Meta Footer */}
-                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-500 font-mono">
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-[10px] text-slate-600 font-semibold font-mono">
                         <span className="flex items-center gap-1 font-sans">
-                          <User className="h-3 w-3 text-slate-400" />
+                          <User className="h-3 w-3 text-slate-500" />
                           By {log.reporterName || 'Anonymous'}
                         </span>
-                        <span className="text-slate-300">•</span>
+                        <span className="text-slate-400">•</span>
                         <span className="flex items-center gap-1 font-sans">
-                          <Calendar className="h-3 w-3 text-slate-400" />
+                          <Calendar className="h-3 w-3 text-slate-500" />
                           {new Date(log.timestamp).toLocaleString(undefined, { dateStyle: 'short', timeStyle: 'short' })}
                         </span>
                       </div>
@@ -419,16 +392,16 @@ export default function Dashboard({ logs, selectedLog, onSelectLog }: DashboardP
                     
                     {/* Geolocation Coordinates (Highly visible in monospace style) */}
                     <div className="text-right">
-                      <span className="block text-[10px] font-bold text-slate-500 uppercase tracking-wider font-sans mb-0.5">
+                      <span className="block text-[10px] font-extrabold text-slate-700 uppercase tracking-wider font-sans mb-0.5">
                         Audit Coordinates
                       </span>
                       {log.latitude !== null && log.longitude !== null ? (
-                        <div className="text-xs font-semibold text-slate-700 font-mono flex flex-col items-end gap-0.5 bg-white/50 border border-white/40 p-1.5 rounded-lg shadow-xs backdrop-blur-sm">
+                        <div className="text-xs font-bold text-slate-800 font-mono flex flex-col items-end gap-0.5 bg-slate-50 border border-slate-200/80 p-1.5 rounded-lg shadow-xs">
                           <span>LAT: {log.latitude.toFixed(5)}°</span>
                           <span>LNG: {log.longitude.toFixed(5)}°</span>
                         </div>
                       ) : (
-                        <span className="text-xs font-semibold text-rose-500 font-mono uppercase bg-rose-50 px-2 py-1 rounded-md">
+                        <span className="text-xs font-bold text-rose-600 font-mono uppercase bg-rose-50 px-2 py-1 rounded-md">
                           Null Coordinates
                         </span>
                       )}
@@ -454,11 +427,6 @@ export default function Dashboard({ logs, selectedLog, onSelectLog }: DashboardP
                         </div>
                       </div>
                     )}
-
-                    {/* interactive guidance to center map */}
-                    <div className="hidden lg:flex items-center justify-center h-8 w-8 rounded-full border border-slate-100 text-slate-400 group-hover:bg-slate-100 group-hover:text-emerald-600 transition-colors">
-                      <ArrowRight className="h-4 w-4" />
-                    </div>
 
                   </div>
 

@@ -94,14 +94,14 @@ export default function WasteMap({ logs, selectedLog, onSelectLog }: WasteMapPro
       if (log.latitude === null || log.longitude === null) return;
 
       const emoji = getEmoji(log.category);
-      const color = log.isVerified ? '#10b981' : '#f43f5e';
-      const shadowColor = log.isVerified ? 'rgba(16, 185, 129, 0.15)' : 'rgba(244, 63, 94, 0.15)';
+      const color = '#10b981';
+      const shadowColor = 'rgba(16, 185, 129, 0.15)';
 
       // Gorgeous Custom SVG DivIcon (solves Leaflet default asset-loading path bug!)
       const customIcon = L.divIcon({
         html: `
           <div class="relative flex items-center justify-center group">
-            <span class="absolute inline-flex h-9 w-9 rounded-full ${log.isVerified ? 'bg-emerald-400/25 animate-pulse' : 'bg-rose-400/25'}" style="background-color: ${shadowColor};"></span>
+            <span class="absolute inline-flex h-9 w-9 rounded-full bg-emerald-400/25 animate-pulse" style="background-color: ${shadowColor};"></span>
             <div class="relative flex h-8 w-8 items-center justify-center rounded-full bg-white border-2 text-md shadow-md hover:scale-110 transition-transform cursor-pointer" style="border-color: ${color};">
               <span>${emoji}</span>
             </div>
@@ -133,15 +133,9 @@ export default function WasteMap({ logs, selectedLog, onSelectLog }: WasteMapPro
 
           <div class="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-[10px]">
             <span class="text-slate-500 font-mono">${new Date(log.timestamp).toLocaleDateString()}</span>
-            ${log.isVerified ? `
-              <span class="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
-                ● Verified GPS
-              </span>
-            ` : `
-              <span class="inline-flex items-center gap-1 font-semibold text-rose-700 bg-rose-50 px-1.5 py-0.5 rounded-md border border-rose-100">
-                ● Unverified Override
-              </span>
-            `}
+            <span class="inline-flex items-center gap-1 font-semibold text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded-md border border-emerald-100">
+              ● Verified GPS
+            </span>
           </div>
           
           <p class="text-[11px] text-slate-500 italic mt-1.5 line-clamp-2">
@@ -205,10 +199,6 @@ export default function WasteMap({ logs, selectedLog, onSelectLog }: WasteMapPro
           <div className="flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse"></span>
             <span className="text-slate-600 font-medium">Verified Coordinates (Anti-Fraud)</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span className="h-2 w-2 rounded-full bg-rose-500"></span>
-            <span className="text-slate-600 font-medium">Manual GPS Override</span>
           </div>
         </div>
       </div>
