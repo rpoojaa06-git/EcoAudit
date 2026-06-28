@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Shield, Sparkles, Trash2, CheckCircle, AlertTriangle } from 'lucide-react';
+import {Sparkles, Trash2, Users} from 'lucide-react';
 import { WasteLog } from '../types';
 
 interface HeaderProps {
@@ -44,11 +44,8 @@ export default function Header({ logs }: HeaderProps) {
             </div>
 
             <div className="flex items-center gap-2 bg-white/40 px-3.5 py-2 rounded-xl border border-white/60 shadow-xs backdrop-blur-xs">
-              <Shield className="h-4 w-4 text-emerald-600" />
-              <span className="text-slate-600 font-medium">Audit Compliance:</span>
-              <span className="font-bold text-emerald-700 font-mono flex items-center gap-1">
-                100% SECURED
-              </span>
+              <Users className="w-5 h-5 text-green-500" />
+              <span className="text-slate-600 font-medium">Community-Driven Audit Stream</span>
             </div>
           </div>
 

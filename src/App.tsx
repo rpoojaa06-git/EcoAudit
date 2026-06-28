@@ -239,9 +239,9 @@ export default function App() {
 
                 {/* Micro info panel */}
                 <div className="bg-emerald-950 text-emerald-100 p-6 rounded-3xl shadow-xl shadow-emerald-950/15 space-y-2">
-                  <span className="text-[10px] font-bold tracking-wider uppercase font-mono text-emerald-400">Ledger Security State</span>
-                  <h5 className="text-sm font-bold">100% Cryptographic-Level Transparency</h5>
+                  <span className="text-[10px] font-bold tracking-wider uppercase font-mono text-emerald-400">Live Dashboard Stream</span>
                   <p className="text-xs text-emerald-200/80 leading-relaxed">
+                    
                     Every waste weight, photo proof, and timestamp logged here is immediately accessible on the open public audit table below.
                   </p>
                 </div>
